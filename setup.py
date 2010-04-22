@@ -19,7 +19,12 @@ ext_modules=[
 
 setup(
   name = 'Hydra',
+  author='Victor Ng',
+  author_email = 'crankycoder@gmail.com',
+  description = 'A high performance persistent bloom filter',
+  url = "http://bitbucket.org/crankycoder/Hydra",
   version=1.0,
+  license = 'MIT License',
   cmdclass = {'build_ext': build_ext},
   zip_safe=False,
   package_dir = {'': 'src'},
