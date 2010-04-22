@@ -2,7 +2,7 @@ syntax: glob
 
 a.out
 *.a
-*.c
+_hydra.c
 *.o
 *.pyc
 *.so
