@@ -4,12 +4,17 @@ import struct
 from os.path import exists
 from os import unlink
 
-def ReadingBloomFilter(num_elements, max_fp_prob, filename, ignore_case=False):
+def ReadingBloomFilter(filename):
     """
     Create a read-only bloom filter with an upperbound of
     (num_elements, max_fp_prob) as a specification and using filename
     as the backing datastore.
     """
+    descriptor = open('%s.desc' % filename, 'r')
+    num_elements = int(descriptor.readline())
+    max_fp_prob = float(descriptor.readline())
+    ignore_case = int(descriptor.readline())
+
     return _hydra.BloomFilter.getFilter(num_elements, max_fp_prob,
             filename=filename, ignore_case=ignore_case,
             read_only=True)
@@ -20,6 +25,10 @@ def WritingBloomFilter(num_elements, max_fp_prob, filename=None, ignore_case=Fal
     (num_elements, max_fp_prob) as a specification and using filename
     as the backing datastore.
     """
+    descriptor = open('%s.desc' % filename, 'w')
+    descriptor.write("%d\n" % num_elements)
+    descriptor.write("%0.8f\n" % max_fp_prob)
+    descriptor.write("%s\n" % int(ignore_case))
     return _hydra.BloomFilter.getFilter(num_elements, max_fp_prob,
             filename=filename, ignore_case=ignore_case,
             read_only=False)
