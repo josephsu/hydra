@@ -100,21 +100,21 @@ class TestBloomFilter(object):
         odd_keys = keygen1[1::2]
         self._testFalsePositives(bf, even_keys, odd_keys)
 
-    def test_fsync(self):
-        """
-        This  test is kind of meaningless since if memory mapping is
-        working, the file is basically acting like a singleton in
-        kernel space.  Flushing to disk is kind of irrelevant.
-        """
-        self.bf.add('foo')
-        assert 'foo' in self.bf
-        assert not 'ffoo' in self.bf
-        self.bf.fdatasync()
-        bf = ReadingBloomFilter(self.ELEMENTS, self.MAX_FAILURE_RATE,
-                filename=self.bf.filename())
-        assert 'foo' in bf
-        assert not 'ffoo' in bf
 
 def test_murmur():
     # Just make sure we can run the hash function from pure python
     print murmur_hash('food')
+
+def test_unicrap():
+    filter = WritingBloomFilter(100000, 0.1)
+    assert not u'\u2019' in filter
+    assert not u'\u2018' in filter
+
+    filter.add(u'\u2018')
+    filter.add(u'\u2019')
+
+    filter.add(u'just a plain string')
+
+    assert u'\u2019' in filter
+    assert u'\u2018' in filter
+    assert u'just a plain string' in filter

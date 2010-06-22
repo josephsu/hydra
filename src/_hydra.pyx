@@ -302,14 +302,18 @@ cdef class BloomFilter:
     def __getitem__(self, char* key):
         return self.isPresent(key)
 
-
-    def __contains__(self, char* key):
-        return self.contains(key)
+    def __contains__(self, ustring):
+        return self.contains(ustring)
 
     @cython.boundscheck(False)
-    def add(self, char* key):
+    def add(self, ustring):
         """ Add a key into the filter.  Just like a set.  """
         cdef long long i
+
+        if isinstance(ustring, unicode):
+            key = ustring.encode('utf8')
+        else:
+            key = ustring
 
         if self._ignore_case:
             c_lcase(key);
@@ -319,9 +323,14 @@ cdef class BloomFilter:
             self._bitmap[self._bucket_indexes[i]] = 1
 
     @cython.boundscheck(False)
-    def contains(self, char* key):
+    def contains(self, ustring):
         """ Check if a key is in the bloom filter.  May return a false positive. """
         cdef long long i
+
+        if isinstance(ustring, unicode):
+            key = ustring.encode('utf8')
+        else:
+            key = ustring
 
         if self._ignore_case:
             c_lcase(key);
