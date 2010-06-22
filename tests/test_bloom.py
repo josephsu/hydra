@@ -113,8 +113,8 @@ def test_unicrap():
     filter.add(u'\u2018')
     filter.add(u'\u2019')
 
-    filter.add(u'just a plain string')
+    filter.add('just a plain string')
 
     assert u'\u2019' in filter
     assert u'\u2018' in filter
-    assert u'just a plain string' in filter
+    assert 'just a plain string' in filter
