@@ -19,6 +19,20 @@ def ReadingBloomFilter(filename):
             filename=filename, ignore_case=ignore_case,
             read_only=True)
 
+def UpdatingBloomFilter(filename):
+    """
+    Load an existing bloom filter in read-write mode using filename
+    as the backing datastore.
+    """
+    descriptor = open('%s.desc' % filename, 'r')
+    num_elements = int(descriptor.readline())
+    max_fp_prob = float(descriptor.readline())
+    ignore_case = int(descriptor.readline())
+
+    return _hydra.BloomFilter.getFilter(num_elements, max_fp_prob,
+            filename=filename, ignore_case=ignore_case,
+            read_only=False)
+
 def WritingBloomFilter(num_elements, max_fp_prob, filename=None, ignore_case=False):
     """
     Create a read/write bloom filter with an upperbound of
