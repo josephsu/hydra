@@ -207,6 +207,5 @@ void bulkload_file(char* buffer, char* filename)
     {
         perror ( filename ); /* why didn't the file open? */
     }
-    return 0;
 }
 
