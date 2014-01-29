@@ -7,7 +7,7 @@ import os
 
 ext_modules=[ 
         Extension("_hydra", 
-            extra_compile_args=['-std=gnu99', '-O2'],
+            extra_compile_args=['-std=gnu99', '-O2', '-D_LARGEFILE64_SOURCE'],
             sources = [
                 "src/_hydra.pyx",
                 'src/mmap_writer.c',
