@@ -100,6 +100,17 @@ class TestBloomFilter(object):
         odd_keys = keygen1[1::2]
         self._testFalsePositives(bf, even_keys, odd_keys)
 
+class TestHugeBloom():
+    ELEMENTS = 250000000
+    MAX_FAILURE_RATE = 0.001
+
+    def setup(self):
+        self.bf = WritingBloomFilter(self.ELEMENTS, self.MAX_FAILURE_RATE)
+
+    def test_one(self):
+        self.bf.add("a")
+        assert self.bf.contains("a")
+        assert not self.bf.contains("b")
 
 def test_murmur():
     # Just make sure we can run the hash function from pure python
