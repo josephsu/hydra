@@ -101,7 +101,7 @@ class TestBloomFilter(object):
         self._testFalsePositives(bf, even_keys, odd_keys)
 
 class TestHugeBloom():
-    ELEMENTS = 250000000
+    ELEMENTS = 1000000000
     MAX_FAILURE_RATE = 0.001
 
     def setup(self):
