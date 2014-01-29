@@ -17,14 +17,14 @@ cdef extern from "stdio.h" nogil:
     cdef char* fgets (char *buffer, int fd, FILE *stream)
 
 cdef extern from "mmap_writer.h" nogil:
-    cdef char* map_file_ro(int fd, long filesize)
-    cdef char* map_file_rw(int fd, long filesize)
+    cdef char* map_file_ro(int fd, size_t filesize)
+    cdef char* map_file_rw(int fd, size_t filesize)
     cdef int open_mmap_file_ro(char* filepath)
-    cdef int open_mmap_file_rw(char* filename, long bytesize)
+    cdef int open_mmap_file_rw(char* filename, size_t bytesize)
     cdef void bulkload_file(char* buffer, char* filename)
     cdef void close_file(int fd)
     cdef void flush_to_disk(int fd)
-    cdef void turn_bits_on(char *map, int index, char bitmask)
+    cdef void turn_bits_on(char *map, size_t index, char bitmask)
     cdef void unmap_file(char* map)
 
 cdef extern from "MurmurHash2A.h" nogil:
@@ -69,8 +69,8 @@ cdef class MMapBitField:
         """ Flush everything to disk """
         flush_to_disk(self._fd)
 
-    def __setitem__(self, unsigned long long int key, int value):
-        cdef unsigned long long int byte_offset = key / 8
+    def __setitem__(self, size_t key, int value):
+        cdef size_t byte_offset = key / 8
         cdef char bitmask
         cdef char bitval
         bitmask = 2 ** (key % 8)
@@ -80,8 +80,8 @@ cdef class MMapBitField:
         else:
             self._buffer[byte_offset] = self._buffer[key] ^ bitmask
 
-    def __getitem__(self, unsigned long long int key):
-        cdef unsigned long long int byte_offset = key / 8
+    def __getitem__(self, size_t key):
+        cdef size_t byte_offset = key / 8
         cdef char old_bitmask = self._buffer[byte_offset]
         return <int> (old_bitmask & <char> (2 ** (key % 8)))
 
@@ -92,7 +92,7 @@ cdef class MMapBitField:
         return self._bitsize
 
 cdef class MMapIter:
-    cdef unsigned long long int _idx
+    cdef size_t _idx
     cdef MMapBitField  _bitfield
     def __cinit__(self, bitfield):
         self._bitfield = bitfield

@@ -16,7 +16,7 @@
  *
  * Return the file descriptor to the file
  */
-int open_mmap_file_rw(char* filename, long bytesize)
+int open_mmap_file_rw(char* filename, size_t bytesize)
 {
     int fd;
     int result;
@@ -36,7 +36,7 @@ int open_mmap_file_rw(char* filename, long bytesize)
     /* Stretch the file size to the size of the (mmapped) array of
      * ints
      * */
-    result = lseek(fd, bytesize-1, SEEK_SET);
+    result = lseek64(fd, bytesize-1, SEEK_SET);
     if (result == -1) {
         close(fd);
         perror("Error calling lseek() to 'stretch' the file");
@@ -80,7 +80,7 @@ int open_mmap_file_ro(char* filepath)
 /*
  * mmap a file descriptor in read-only mode and return a char array
  */
-char* map_file_ro(int fd, long filesize)
+char* map_file_ro(int fd, size_t filesize)
 {
     char* map;
     map = mmap(0, filesize, PROT_READ, MAP_SHARED, fd, 0);
@@ -95,7 +95,7 @@ char* map_file_ro(int fd, long filesize)
 /*
  * mmap the file descriptor in r/w/ mode.  Return the char array 
  */
-char* map_file_rw(int fd, long filesize)
+char* map_file_rw(int fd, size_t filesize)
 {
     char* map;
 
@@ -125,7 +125,7 @@ void unmap_file(char* map) {
     }
 }
 
-void turn_bits_on(char *map, int index, char bitmask)
+void turn_bits_on(char *map, off_t index, char bitmask)
 {
     map[index] = map[index] | bitmask;
 }
@@ -164,7 +164,7 @@ int main(int argc, char *argv[])
     /* Now write int's to the file as if it were memory (an array of
      * ints).
      * */
-    for (int i = 0; i <NUMINTS; i++) {
+    for (off_t i = 0; i <NUMINTS; i++) {
         turn_bits_on(map, i, (char) i);
     }
 
@@ -179,7 +179,7 @@ int main(int argc, char *argv[])
 
     /* Read the file int-by-int from the mmap
      * */
-    for (int i = 0; i < NUMINTS; i++) {
+    for (off_t i = 0; i < NUMINTS; i++) {
         printf("%d\n", (unsigned int) map[i]);
     }
 
