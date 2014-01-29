@@ -69,7 +69,7 @@ cdef class MMapBitField:
         """ Flush everything to disk """
         flush_to_disk(self._fd)
 
-    def __setitem__(self, int key, int value):
+    def __setitem__(self, long long int key, int value):
         cdef int byte_offset = key / 8
         cdef char bitmask
         cdef char bitval
@@ -80,7 +80,7 @@ cdef class MMapBitField:
         else:
             self._buffer[byte_offset] = self._buffer[key] ^ bitmask
 
-    def __getitem__(self, int key):
+    def __getitem__(self, long long int key):
         cdef int byte_offset = key / 8
         cdef char old_bitmask = self._buffer[byte_offset]
         return <int> (old_bitmask & <char> (2 ** (key % 8)))
