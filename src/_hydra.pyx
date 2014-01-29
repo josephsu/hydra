@@ -69,8 +69,8 @@ cdef class MMapBitField:
         """ Flush everything to disk """
         flush_to_disk(self._fd)
 
-    def __setitem__(self, long long int key, int value):
-        cdef int byte_offset = key / 8
+    def __setitem__(self, unsigned long long int key, int value):
+        cdef unsigned long long int byte_offset = key / 8
         cdef char bitmask
         cdef char bitval
         bitmask = 2 ** (key % 8)
@@ -80,8 +80,8 @@ cdef class MMapBitField:
         else:
             self._buffer[byte_offset] = self._buffer[key] ^ bitmask
 
-    def __getitem__(self, long long int key):
-        cdef int byte_offset = key / 8
+    def __getitem__(self, unsigned long long int key):
+        cdef unsigned long long int byte_offset = key / 8
         cdef char old_bitmask = self._buffer[byte_offset]
         return <int> (old_bitmask & <char> (2 ** (key % 8)))
 
@@ -92,7 +92,7 @@ cdef class MMapBitField:
         return self._bitsize
 
 cdef class MMapIter:
-    cdef int _idx
+    cdef unsigned long long int _idx
     cdef MMapBitField  _bitfield
     def __cinit__(self, bitfield):
         self._bitfield = bitfield
@@ -210,12 +210,12 @@ cdef class BloomCalculations:
 
 cdef class BloomFilter:
     EXCESS = 20
-    cdef int _hashCount
+    cdef unsigned int _hashCount
     cdef MMapBitField _bitmap
     cdef int _ignore_case
-    cdef long long _bucket_indexes[1000]
+    cdef unsigned long long _bucket_indexes[1000]
 
-    def __cinit__(self, int hashes, MMapBitField bitmap, int ignore_case):
+    def __cinit__(self, unsigned int hashes, MMapBitField bitmap, int ignore_case):
         cdef int i
 
         self._hashCount = hashes
@@ -308,7 +308,7 @@ cdef class BloomFilter:
     @cython.boundscheck(False)
     def add(self, ustring):
         """ Add a key into the filter.  Just like a set.  """
-        cdef long long i
+        cdef unsigned long long i
 
         if isinstance(ustring, unicode):
             key = ustring.encode('utf8')
@@ -325,7 +325,7 @@ cdef class BloomFilter:
     @cython.boundscheck(False)
     def contains(self, ustring):
         """ Check if a key is in the bloom filter.  May return a false positive. """
-        cdef long long i
+        cdef unsigned long long i
 
         if isinstance(ustring, unicode):
             key = ustring.encode('utf8')
@@ -344,7 +344,7 @@ cdef class BloomFilter:
         """ Return the number of total buckets (bits) in the bloom filter """
         return len(self._bitmap)
 
-    def getHashBuckets(self, char* key, int hashCount, long max):
+    def getHashBuckets(self, char* key, unsigned int hashCount, long max):
         """ This method is just available for test purposes.  Not actually useful for normal users. """
 
         self._get_hash_buckets(key, hashCount, max)
@@ -354,7 +354,7 @@ cdef class BloomFilter:
         return result
 
     @cython.boundscheck(False)
-    cdef void _get_hash_buckets(self, char* key, int hashCount, long max):
+    cdef void _get_hash_buckets(self, char* key, unsigned int hashCount, long max):
         """
         Murmur is faster than an SHA-based approach and provides as-good collision
         resistance.  The combinatorial generation approach described in
@@ -364,18 +364,18 @@ cdef class BloomFilter:
         """
         cdef long hash1
         cdef long hash2
-        cdef long long i
+        cdef unsigned long long i
 
         hash1 = MurmurHash2A(key, len(key), 0)
         hash2 = MurmurHash2A(key, len(key), hash1)
         for i in range(hashCount):
             self._bucket_indexes[i] = llabs((hash1 + i * hash2) % max)
 
-    cdef void _strip_newline(self, char *buffer, int size):
+    cdef void _strip_newline(self, char *buffer, unsigned int size):
         """
         Strip newline by overwriting with a null
         """
-        cdef int i
+        cdef unsigned int i
         for i in range(size):
             if buffer[i] == '\n':
                 buffer[i] = '\x00'
@@ -395,6 +395,6 @@ cdef void c_lcase(char* buffer):
     """
     Force string to lower case
     """
-    cdef int i
+    cdef unsigned int i
     for i in range(len(buffer)):
         buffer[i] = <char> tolower(buffer[i])
