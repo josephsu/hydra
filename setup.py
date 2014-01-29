@@ -11,7 +11,6 @@ ext_modules=[
             sources = [
                 "src/_hydra.pyx",
                 'src/mmap_writer.c',
-                'src/mmap_writer.h',
                 'src/MurmurHash2A.c'],
             include_dirs = [join(os.getcwd(), 'src')],  # path to .h file(s)
             library_dirs = [join(os.getcwd(), 'src')],  # path to .a or .so file(s)
