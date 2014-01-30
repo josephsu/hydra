@@ -40,10 +40,10 @@ def WritingBloomFilter(num_elements, max_fp_prob, filename=None, ignore_case=Fal
     as the backing datastore.
     """
     if filename:
-        descriptor = open('%s.desc' % filename, 'w')
-        descriptor.write("%d\n" % num_elements)
-        descriptor.write("%0.8f\n" % max_fp_prob)
-        descriptor.write("%s\n" % int(ignore_case))
+        with open('%s.desc' % filename, 'w') as descriptor:
+            descriptor.write("%d\n" % num_elements)
+            descriptor.write("%0.8f\n" % max_fp_prob)
+            descriptor.write("%s\n" % int(ignore_case))
     return _hydra.BloomFilter.getFilter(num_elements, max_fp_prob,
             filename=filename, ignore_case=ignore_case,
             read_only=False)
