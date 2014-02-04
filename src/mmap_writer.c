@@ -41,7 +41,7 @@ int open_mmap_file_rw(char* filename, size_t bytesize)
     /* Stretch the file size to the size of the (mmapped) array of
      * ints
      * */
-    result = lseek64(fd, bytesize-1, SEEK_SET);
+    result = lseek(fd, bytesize-1, SEEK_SET);
     if (result == -1) {
         close(fd);
         perror("Error calling lseek() to 'stretch' the file");
