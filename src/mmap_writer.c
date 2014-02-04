@@ -5,6 +5,11 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/mman.h>
+
+#ifdef __linux__
+#include <sys/resource.h>
+#endif
+
 #include "mmap_writer.h"
 
 #define FILEPATH "/tmp/mmapped.bin"
@@ -83,7 +88,16 @@ int open_mmap_file_ro(char* filepath)
 char* map_file_ro(int fd, size_t filesize)
 {
     char* map;
-    map = mmap(0, filesize, PROT_READ, MAP_SHARED, fd, 0);
+    int flags = MAP_SHARED;
+    #ifdef __linux__
+    struct rlimit rlim;
+    if (! getrlimit(RLIMIT_MEMLOCK, &rlim)) {
+        if (filesize <= rlim.rlim_cur) {
+            flags |= MAP_LOCKED;
+	}
+    }
+    #endif
+    map = mmap(0, filesize, PROT_READ, flags, fd, 0);
     if (map == MAP_FAILED) {
         close(fd);
         perror("Error mmapping the file");
@@ -98,12 +112,19 @@ char* map_file_ro(int fd, size_t filesize)
 char* map_file_rw(int fd, size_t filesize)
 {
     char* map;
+    int flags = MAP_SHARED;
 
     #ifdef __linux__
-    map = (char *) mmap(0, filesize, PROT_READ | PROT_WRITE, MAP_SHARED|MAP_POPULATE, fd, 0);
-    #else
-    map = (char *) mmap(0, filesize, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    flags |= MAP_POPULATE;
+    struct rlimit rlim;
+    if (! getrlimit(RLIMIT_MEMLOCK, &rlim)) {
+        if (filesize <= rlim.rlim_cur) {
+            flags |= MAP_LOCKED;
+	}
+    }
     #endif
+
+    map = (char *) mmap(0, filesize, PROT_READ | PROT_WRITE, flags, fd, 0);
 
     if (map == MAP_FAILED) {
         close(fd);
