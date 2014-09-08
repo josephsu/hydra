@@ -17,15 +17,15 @@ cdef extern from "stdio.h" nogil:
     cdef char* fgets (char *buffer, int fd, FILE *stream)
 
 cdef extern from "mmap_writer.h" nogil:
-    cdef char* map_file_ro(int fd, size_t filesize)
-    cdef char* map_file_rw(int fd, size_t filesize)
-    cdef int open_mmap_file_ro(char* filepath)
-    cdef int open_mmap_file_rw(char* filename, size_t bytesize)
+    cdef char* map_file_ro(int fd, size_t filesize, int want_lock) except NULL
+    cdef char* map_file_rw(int fd, size_t filesize, int want_lock) except NULL
+    cdef int open_mmap_file_ro(char* filepath) except -1
+    cdef int open_mmap_file_rw(char* filename, size_t bytesize) except -1
     cdef void bulkload_file(char* buffer, char* filename)
-    cdef void close_file(int fd)
-    cdef void flush_to_disk(int fd)
+    cdef int close_file(int fd) except -1
+    cdef int flush_to_disk(int fd) except -1
     cdef void turn_bits_on(char *map, size_t index, char bitmask)
-    cdef void unmap_file(char* map)
+    cdef int unmap_file(char* map, int filesize) except -1
 
 cdef extern from "MurmurHash2A.h" nogil:
     unsigned int MurmurHash2A (void * key, int len, unsigned int seed)
@@ -52,13 +52,13 @@ cdef class MMapBitField:
         else:
             self.open_rw_buffer()
 
-    cdef void open_rw_buffer(self):
+    cdef void open_rw_buffer(self, want_lock=False):
         self._fd = open_mmap_file_rw(self._filename, self._bytesize)
-        self._buffer = map_file_rw(self._fd, self._bytesize)
+        self._buffer = map_file_rw(self._fd, self._bytesize, want_lock)
 
-    cdef void open_ro_buffer(self):
+    cdef void open_ro_buffer(self, want_lock=False):
         self._fd = open_mmap_file_ro(self._filename)
-        self._buffer = map_file_ro(self._fd, self._bytesize)
+        self._buffer = map_file_ro(self._fd, self._bytesize, want_lock)
         
     def __dealloc__(self):
         self.close()
