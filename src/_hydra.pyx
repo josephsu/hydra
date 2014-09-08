@@ -61,18 +61,31 @@ cdef class MMapBitField:
         self._buffer = map_file_ro(self._fd, self._bytesize)
         
     def __dealloc__(self):
-        flush_to_disk(self._fd)
-        unmap_file(self._buffer)
-        close_file(self._fd)
+        self.close()
+
+    def close(self):
+        if self._fd >= 0 and self._buffer:
+            flush_to_disk(self._fd)
+            unmap_file(self._buffer, self._bytesize)
+            close_file(self._fd)
+            self._fd = -1
+            self._buffer = NULL
 
     def fdatasync(self):
         """ Flush everything to disk """
+        if self._fd < 0 or not self._buffer:
+            raise ValueError('I/O operation on closed file')
+
         flush_to_disk(self._fd)
 
     def __setitem__(self, size_t key, int value):
         cdef size_t byte_offset = key / 8
         cdef char bitmask
         cdef char bitval
+
+        if self._fd < 0 or not self._buffer:
+            raise ValueError('I/O operation on closed file')
+
         bitmask = 2 ** (key % 8)
         if value:
             bitval = self._buffer[byte_offset] | bitmask
@@ -82,13 +95,23 @@ cdef class MMapBitField:
 
     def __getitem__(self, size_t key):
         cdef size_t byte_offset = key / 8
+
+        if self._fd < 0 or not self._buffer:
+            raise ValueError('I/O operation on closed file')
+
         cdef char old_bitmask = self._buffer[byte_offset]
         return <int> (old_bitmask & <char> (2 ** (key % 8)))
 
     def __iter__(self):
+        if self._fd < 0 or not self._buffer:
+            raise ValueError('I/O operation on closed file')
+
         return MMapIter(self)
 
     def __len__(self):
+        if self._fd < 0 or not self._buffer:
+            raise ValueError('I/O operation on closed file')
+
         return self._bitsize
 
 cdef class MMapIter:
@@ -225,6 +248,15 @@ cdef class BloomFilter:
         for i in range(self._hashCount):
             self._bucket_indexes[i]=0
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *excinfo):
+        self.close()
+        return None
+
+    def close(self):
+        self._bitmap.close()
 
     def fdatasync(self):
         """ Flush everything to disk """
