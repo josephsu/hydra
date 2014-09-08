@@ -97,10 +97,8 @@ char* map_file_ro(int fd, size_t filesize, int want_lock)
     int flags = MAP_SHARED;
     #ifdef __linux__
     struct rlimit rlim;
-    if (want_lock && ! getrlimit(RLIMIT_MEMLOCK, &rlim)) {
-        if (filesize <= rlim.rlim_cur) {
-            //flags |= MAP_LOCKED;
-	}
+    if (want_lock) {
+        flags |= MAP_LOCKED;
     }
     #endif
     map = mmap(0, filesize, PROT_READ, flags, fd, 0);
@@ -124,10 +122,8 @@ char* map_file_rw(int fd, size_t filesize, int want_lock)
     #ifdef __linux__
     flags |= MAP_POPULATE;
     struct rlimit rlim;
-    if (want_lock && ! getrlimit(RLIMIT_MEMLOCK, &rlim)) {
-        if (filesize <= rlim.rlim_cur) {
-            //flags |= MAP_LOCKED;
-	}
+    if (want_lock) {
+        flags |= MAP_LOCKED;
     }
     #endif
 
