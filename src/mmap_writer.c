@@ -8,10 +8,6 @@
 
 #include <Python.h>
 
-#ifdef __linux__
-#include <sys/resource.h>
-#endif
-
 #include "mmap_writer.h"
 
 #define FILEPATH "/tmp/mmapped.bin"
@@ -96,7 +92,6 @@ char* map_file_ro(int fd, size_t filesize, int want_lock)
     char* map;
     int flags = MAP_SHARED;
     #ifdef __linux__
-    struct rlimit rlim;
     if (want_lock) {
         flags |= MAP_LOCKED;
     }
@@ -121,7 +116,6 @@ char* map_file_rw(int fd, size_t filesize, int want_lock)
 
     #ifdef __linux__
     flags |= MAP_POPULATE;
-    struct rlimit rlim;
     if (want_lock) {
         flags |= MAP_LOCKED;
     }
