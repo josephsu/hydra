@@ -1,0 +1,13 @@
+syntax: glob
+
+a.out
+*.a
+_hydra.c
+*.o
+*.pyc
+*.so
+*.swp
+*egg-info
+build
+dist
+javabloom
