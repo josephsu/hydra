@@ -41,16 +41,16 @@ cdef class MMapBitField:
     cdef long _bytesize
     cdef char* _buffer
 
-    def __cinit__(self, char* filename, long bitsize, int read_only):
+    def __cinit__(self, char* filename, long bitsize, int read_only, int want_lock=False):
         self._filename = filename
         self._bitsize = bitsize
         self._bytesize = (bitsize / 8) + 2
 
         # Now setup the file and mmap
         if read_only:
-            self.open_ro_buffer()
+            self.open_ro_buffer(want_lock)
         else:
-            self.open_rw_buffer()
+            self.open_rw_buffer(want_lock)
 
     cdef void open_rw_buffer(self, want_lock=False):
         self._fd = open_mmap_file_rw(self._filename, self._bytesize)
@@ -278,10 +278,10 @@ cdef class BloomFilter:
         return min(len(BloomCalculations.PROBS) - 1, int(v))
 
     @classmethod
-    def _bucketsFor(cls, numElements, bucketsPer, filename, read_only):
+    def _bucketsFor(cls, numElements, bucketsPer, filename, read_only, want_lock=False):
         numBits = numElements * bucketsPer + cls.EXCESS
         bf_size = min(sys.maxint, numBits)
-        return MMapBitField(filename, bf_size, read_only)
+        return MMapBitField(filename, bf_size, read_only, want_lock=want_lock)
 
     @classmethod
     def getFilter(cls, numElements, maxFalsePosProbability, **kwargs):
@@ -309,8 +309,9 @@ cdef class BloomFilter:
         filename = kwargs.get('filename', None)
         ignore_case = kwargs.get('ignore_case', 0)
         read_only = kwargs.get('read_only', 0)
+        want_lock = kwargs.get('want_lock', False)
 
-        for k in ['filename', 'ignore_case', 'read_only']:
+        for k in ['filename', 'ignore_case', 'read_only', 'want_lock']:
             if kwargs.has_key(k):
                 del kwargs[k]
         if kwargs:
@@ -324,7 +325,7 @@ cdef class BloomFilter:
         assert 0 < maxFalsePosProbability <= 1.0, "Invalid probability"
         bucketsPerElement = cls._maxBucketsPerElement(numElements)
         spec = BloomCalculations.computeBloomSpec2(bucketsPerElement, maxFalsePosProbability)
-        bitmap = cls._bucketsFor(numElements, spec.bucketsPerElement, filename, read_only)
+        bitmap = cls._bucketsFor(numElements, spec.bucketsPerElement, filename, read_only, want_lock)
         bf = BloomFilter(spec.K, bitmap, ignore_case)
         return bf
 
