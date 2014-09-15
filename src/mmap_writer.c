@@ -6,9 +6,7 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 
-#ifdef __linux__
-#include <sys/resource.h>
-#endif
+#include <Python.h>
 
 #include "mmap_writer.h"
 
@@ -34,8 +32,9 @@ int open_mmap_file_rw(char* filename, size_t bytesize)
 
     fd = open(filename, O_RDWR | O_CREAT, (mode_t)0600);
     if (fd == -1) {
-        perror("Error opening file for writing");
-        exit(EXIT_FAILURE);
+        PyErr_SetFromErrnoWithFilename(PyExc_OSError,
+                           "Error opening file for writing");
+         return -1;
     }
 
     /* Stretch the file size to the size of the (mmapped) array of
@@ -43,9 +42,10 @@ int open_mmap_file_rw(char* filename, size_t bytesize)
      * */
     result = lseek(fd, bytesize-1, SEEK_SET);
     if (result == -1) {
+        PyErr_SetFromErrnoWithFilename(PyExc_OSError,
+                           "Error calling lseek() to 'stretch' the file");
         close(fd);
-        perror("Error calling lseek() to 'stretch' the file");
-        exit(EXIT_FAILURE);
+         return -1;
     }
 
     /* Something needs to be written at the end of the file to
@@ -64,8 +64,9 @@ int open_mmap_file_rw(char* filename, size_t bytesize)
     result = write(fd, "", 1);
     if (result != 1) {
         close(fd);
-        perror("Error writing last byte of the file");
-        exit(EXIT_FAILURE);
+        PyErr_SetFromErrnoWithFilename(PyExc_OSError,
+                           "Error writing last byte of the file");
+         return -1;
     }
 
     return fd;
@@ -76,8 +77,9 @@ int open_mmap_file_ro(char* filepath)
     int fd;
     fd = open(filepath, O_RDONLY);
     if (fd == -1) {
-        perror("Error opening file for reading");
-        exit(EXIT_FAILURE);
+        PyErr_SetFromErrnoWithFilename(PyExc_OSError,
+                           "Error opening file for reading");
+         return -1;
     }
     return fd;
 }
@@ -85,23 +87,21 @@ int open_mmap_file_ro(char* filepath)
 /*
  * mmap a file descriptor in read-only mode and return a char array
  */
-char* map_file_ro(int fd, size_t filesize)
+char* map_file_ro(int fd, size_t filesize, int want_lock)
 {
     char* map;
     int flags = MAP_SHARED;
     #ifdef __linux__
-    struct rlimit rlim;
-    if (! getrlimit(RLIMIT_MEMLOCK, &rlim)) {
-        if (filesize <= rlim.rlim_cur) {
-            flags |= MAP_LOCKED;
-	}
+    if (want_lock) {
+        flags |= MAP_LOCKED;
     }
     #endif
     map = mmap(0, filesize, PROT_READ, flags, fd, 0);
     if (map == MAP_FAILED) {
+        PyErr_SetFromErrnoWithFilename(PyExc_OSError,
+                           "Error mmapping the file");
         close(fd);
-        perror("Error mmapping the file");
-        exit(EXIT_FAILURE);
+         return 0;
     }
     return map;
 }
@@ -109,27 +109,25 @@ char* map_file_ro(int fd, size_t filesize)
 /*
  * mmap the file descriptor in r/w/ mode.  Return the char array 
  */
-char* map_file_rw(int fd, size_t filesize)
+char* map_file_rw(int fd, size_t filesize, int want_lock)
 {
     char* map;
     int flags = MAP_SHARED;
 
     #ifdef __linux__
     flags |= MAP_POPULATE;
-    struct rlimit rlim;
-    if (! getrlimit(RLIMIT_MEMLOCK, &rlim)) {
-        if (filesize <= rlim.rlim_cur) {
-            flags |= MAP_LOCKED;
-	}
+    if (want_lock) {
+        flags |= MAP_LOCKED;
     }
     #endif
 
     map = (char *) mmap(0, filesize, PROT_READ | PROT_WRITE, flags, fd, 0);
 
     if (map == MAP_FAILED) {
+        PyErr_SetFromErrnoWithFilename(PyExc_OSError,
+                           "Error mmapping the file");
         close(fd);
-        perror("Error mmapping the file");
-        exit(EXIT_FAILURE);
+         return 0;
     }
 
     return map;
@@ -138,12 +136,13 @@ char* map_file_rw(int fd, size_t filesize)
 /* 
  * Don't forget to free the mmapped memory
  */
-void unmap_file(char* map) {
-    if (munmap(map, FILESIZE) == -1) {
-        perror("Error un-mmapping the file");
-        /* Decide here whether to close(fd) and exit() or not.
-         * Depends... */
+int unmap_file(char* map, int filesize) {
+    if (munmap(map, filesize) == -1) {
+        PyErr_SetFromErrnoWithFilename(PyExc_OSError,
+                           "Error un-mmapping the file");
+        return -1;
     }
+    return 0;
 }
 
 void turn_bits_on(char *map, off_t index, char bitmask)
@@ -151,27 +150,30 @@ void turn_bits_on(char *map, off_t index, char bitmask)
     map[index] = map[index] | bitmask;
 }
 
-void flush_to_disk(int fd)
+int flush_to_disk(int fd)
 {
     int  result;
     result = fdatasync(fd);
     if (result == -1) {
+        PyErr_SetFromErrnoWithFilename(PyExc_OSError,
+                           "Error flushing the file");
         close(fd);
-        perror("Error calling lseek() to 'stretch' the file");
-        exit(EXIT_FAILURE);
+         return -1;
     }
+    return 0;
 }
 
-void close_file(int fd)
+int close_file(int fd)
 {
     int  result;
     flush_to_disk(fd);
     result = close(fd);
     if (result == -1) {
-        close(fd);
-        perror("Error calling lseek() to 'stretch' the file");
-        exit(EXIT_FAILURE);
+        PyErr_SetFromErrnoWithFilename(PyExc_OSError,
+                           "Error closing the file");
+         return -1;
     }
+    return 0;
 }
 
 int main(int argc, char *argv[])
@@ -180,7 +182,7 @@ int main(int argc, char *argv[])
     char *map; /* mmapped array of chars */
     fd = open_mmap_file_rw(FILEPATH, FILESIZE);
 
-    map = map_file_rw(fd, FILESIZE);
+    map = map_file_rw(fd, FILESIZE, 0);
 
     /* Now write int's to the file as if it were memory (an array of
      * ints).
@@ -189,14 +191,14 @@ int main(int argc, char *argv[])
         turn_bits_on(map, i, (char) i);
     }
 
-    unmap_file(map);
+    unmap_file(map, FILESIZE);
 
     /* Un-mmaping doesn't close the file, so we still need to do that.
      * */
     close(fd);
 
     fd = open_mmap_file_ro(FILEPATH);
-    map = map_file_ro(fd, FILESIZE);
+    map = map_file_ro(fd, FILESIZE, 0);
 
     /* Read the file int-by-int from the mmap
      * */

@@ -101,6 +101,26 @@ class TestBloomFilter(object):
         odd_keys = keygen1[1::2]
         self._testFalsePositives(bf, even_keys, odd_keys)
 
+    def testNullKeys(self):
+        assert 'foo' not in self.bf
+        assert 'foo\0bar' not in self.bf
+        assert 'foo\0baz' not in self.bf
+
+        self.bf.add('foo')
+
+        assert 'foo' in self.bf
+        assert 'foo\0bar' not in self.bf
+        assert 'foo\0baz' not in self.bf
+
+        self.bf.add('foo\0bar')
+
+        assert 'foo\0bar' in self.bf
+        assert 'foo\0baz' not in self.bf
+
+        self.bf.add('foo\0baz')
+
+        assert 'foo\0baz' in self.bf
+
 class TestHugeBloom():
     ELEMENTS = 1000000000
     MAX_FAILURE_RATE = 0.001
