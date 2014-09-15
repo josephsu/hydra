@@ -338,7 +338,7 @@ cdef class BloomFilter:
         self.add(key)
 
     def __getitem__(self, key):
-        return self.isPresent(key)
+        return int(self.contains(key))
 
     def __contains__(self, ustring):
         return self.contains(ustring)
