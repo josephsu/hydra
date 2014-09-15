@@ -31,9 +31,9 @@ cdef extern from "mmap_writer.h" nogil:
 cdef extern from "MurmurHash2A.h" nogil:
     unsigned int MurmurHash2A (void * key, int len, unsigned int seed)
 
-def hash(char* key, unsigned int seed=0):
+def hash(key, unsigned int seed=0):
     """ This function hashes a string using the Murmur2A hash algorithm"""
-    return MurmurHash2A(key, len(key), seed)
+    return MurmurHash2A(<char*>key, len(key), seed)
 
 cdef class MMapBitField:
     cdef char* _filename
@@ -334,10 +334,10 @@ cdef class BloomFilter:
         bf = BloomFilter(spec.K, bitmap, ignore_case)
         return bf
 
-    def __setitem__(self, char* key, int ignored):
+    def __setitem__(self, key, int ignored):
         self.add(key)
 
-    def __getitem__(self, char* key):
+    def __getitem__(self, key):
         return self.isPresent(key)
 
     def __contains__(self, ustring):
@@ -382,7 +382,7 @@ cdef class BloomFilter:
         """ Return the number of total buckets (bits) in the bloom filter """
         return len(self._bitmap)
 
-    def getHashBuckets(self, char* key, unsigned int hashCount, long max):
+    def getHashBuckets(self, key, unsigned int hashCount, long max):
         """ This method is just available for test purposes.  Not actually useful for normal users. """
 
         self._get_hash_buckets(key, hashCount, max)
@@ -392,7 +392,7 @@ cdef class BloomFilter:
         return result
 
     @cython.boundscheck(False)
-    cdef void _get_hash_buckets(self, char* key, unsigned int hashCount, long max):
+    cdef void _get_hash_buckets(self, key, unsigned int hashCount, long max):
         """
         Murmur is faster than an SHA-based approach and provides as-good collision
         resistance.  The combinatorial generation approach described in
@@ -404,8 +404,8 @@ cdef class BloomFilter:
         cdef long hash2
         cdef unsigned long long i
 
-        hash1 = MurmurHash2A(key, len(key), 0)
-        hash2 = MurmurHash2A(key, len(key), hash1)
+        hash1 = MurmurHash2A(<char*>key, len(key), 0)
+        hash2 = MurmurHash2A(<char*>key, len(key), hash1)
         for i in range(hashCount):
             self._bucket_indexes[i] = llabs((hash1 + i * hash2) % max)
 

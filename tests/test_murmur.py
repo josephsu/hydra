@@ -16,3 +16,11 @@ def test_collisions():
             hashes[hcode] = key
         else:
             raise RuntimeError, "Hash collision!: %s %s" % (key, hashes[hcode])
+
+def test_null_key():
+    h0 = _hydra.hash('foo')
+    h1 = _hydra.hash('foo\0bar')
+    h2 = _hydra.hash('foo\0baz')
+    assert h0 != h1, 'Hash collision for appended null'
+    assert h0 != h2, 'Hash collision for appended null'
+    assert h1 != h2, 'Hash collision for bytes after null'
